@@ -8,7 +8,6 @@ on:
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -16,21 +15,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: flask-app
-
       - name: Create SSH Key
         run: |
           echo "${{ secrets.VM_KEY }}" > key.pem
           chmod 600 key.pem
 
-      - name: Copy Artifact
+      - name: Copy Application
         run: |
-          scp -o StrictHostKeyChecking=no \
+          scp -r \
+          -o StrictHostKeyChecking=no \
           -i key.pem \
-          app.tar.gz \
+          app \
           ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/deploy/
 
       - name: Execute Deployment
@@ -38,4 +33,4 @@ jobs:
           ssh -o StrictHostKeyChecking=no \
           -i key.pem \
           ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-          'bash ~/deploy/deploy.sh'
+          'pkill -f app.py || true && nohup python3 ~/deploy/app/app.py > ~/deploy/flask.log 2>&1 &'
